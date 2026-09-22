@@ -1,7 +1,25 @@
 from   astropy.io import fits
 import numpy      as     np
 
-def extract_header_keywords(file, instrument, Norder):
+from typing import Literal
+
+def extract_header_keywords(file:str, instrument:Literal['espresso', 'expres', 'harps', 'harps-n', 'kpf', 'neid', 'nirps'], Norder:int) -> dict:
+    """Extract header keywords.
+
+    Parameters
+    ----------
+    file : str
+        Filename. Must be a CCF_A file (ESPRESSO, HARPS, HARPS-N, NIRPS) or an L2 file (EXPRES, KPF, NEID).
+    instrument : Literal['espresso', 'expres', 'harps', 'harps-n', 'kpf', 'neid', 'nirps']
+        Instrument name.
+    Norder : int
+        Nr. of echelle orders for the spectrograph.
+
+    Returns
+    -------
+    dict
+        Dictionary with relevant header keywords.
+    """
 
     # Load FITS file
     with fits.open(file) as hdul:
@@ -33,8 +51,20 @@ def extract_header_keywords(file, instrument, Norder):
             header_dict['cont_err'] = header['HIERARCH ESO QC CCF CONTRAST ERROR'    ]
             header_dict['biss_val'] = header['HIERARCH ESO QC CCF BIS SPAN'          ]
             header_dict['biss_err'] = header['HIERARCH ESO QC CCF BIS SPAN ERROR'    ]
-            for j in range(Norder):
-                header_dict[f'snr_{j+1}'] = header[f'HIERARCH ESO QC ORDER{j+1} SNR' ]
+            for i in range(Norder):
+                header_dict[f'snr_{i+1}'] = header[f'HIERARCH ESO QC ORDER{i+1} SNR' ]
+
+        # EXPRES
+        if instrument == 'expres':
+
+            # TODO
+            return None
+
+        # HARPS
+        if instrument == 'harps':
+
+            # TODO
+            return None
 
         # HARPS-N
         if instrument == 'harps-n':
@@ -63,8 +93,14 @@ def extract_header_keywords(file, instrument, Norder):
             header_dict['cont_err'] = header['HIERARCH TNG QC CCF CONTRAST ERROR'    ]
             header_dict['biss_val'] = header['HIERARCH TNG QC CCF BIS SPAN'          ]
             header_dict['biss_err'] = header['HIERARCH TNG QC CCF BIS SPAN ERROR'    ]
-            for j in range(Norder):
-                header_dict[f'snr_{j+1}'] = header[f'HIERARCH TNG QC ORDER{j+1} SNR' ]
+            for i in range(Norder):
+                header_dict[f'snr_{i+1}'] = header[f'HIERARCH TNG QC ORDER{i+1} SNR' ]
+
+        # KPF
+        if instrument == 'kpf':
+
+            # TODO
+            return None
 
         # NEID
         if instrument == 'neid':
@@ -97,7 +133,13 @@ def extract_header_keywords(file, instrument, Norder):
             header                  = hdul[0].header
             header_dict['snr_drs' ] = header['EXTSNR'                                ]
             Npix = hdul[1].data.shape[1]
-            for j in range(Norder):
-                header_dict[f'snr_{j+1}'] = hdul[1].data[j,Npix//2]/np.sqrt(hdul[4].data[j,Npix//2])
+            for i in range(Norder):
+                header_dict[f'snr_{i+1}'] = hdul[1].data[i,Npix//2]/np.sqrt(hdul[4].data[i,Npix//2])
+
+        # NIRPS
+        if instrument == 'nirps':
+
+            # TODO
+            return None
 
     return header_dict

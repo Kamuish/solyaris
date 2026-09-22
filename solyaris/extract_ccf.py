@@ -4,16 +4,49 @@ from   iCCF              import Mask
 import numpy             as     np
 from   PyAstronomy       import pyasl
 from   scipy.interpolate import interp1d
-import warnings
-warnings.filterwarnings('ignore')
 
-def extract_ccf(file, instrument):
+def extract_ccf(file_path:str) -> tuple[np.array]:
+    """Extract Cross-Correlation Function (CCF).
 
-    # ESPRESSO
-    if instrument == 'espresso':
+    Parameters
+    ----------
+    file_path : str
+        Path to FITS file. Must be a CCF_A file (ESPRESSO, HARPS, HARPS-N, NIRPS) or an L2 file (EXPRES, KPF, NEID).
+
+    Returns
+    -------
+    tuple[np.array]
+        Velocity grid, CCF values and CCF errors.
+    """
+
+    # Instrument
+    file = file_path.split('/')[-1]
+    if file.startswith('r.ESPRE'):
+        instrument = 'espresso'
+    if file.startswith('r.HARPS'):
+        instrument = 'harps'
+    if file.startswith('r.HARPN'):
+        instrument = 'harps-n'
+    if file.startswith('r.NIRPS'):
+        instrument = 'nirps'
+    if file.startswith('expres'):
+        instrument = 'expres'
+    if file.startswith('KP'):
+        instrument = 'kpf'
+    if file.startswith('neid'):
+        instrument = 'neid'
+
+    # ESPRESSO, HARPS, HARPS-N, NIRPS
+    if (instrument == 'espresso') | (instrument == 'harps') | (instrument == 'harps-n') | (instrument == 'nirps'):
+
+        # Organization listed after 'HIERARCH' in header keywords
+        if (instrument == 'espresso') | (instrument == 'harps') | (instrument == 'nirps'):
+            ORG = 'ESO'
+        if (instrument == 'harps-n'):
+            ORG = 'TNG'
 
         # Load FITS file
-        with fits.open(file) as hdul:
+        with fits.open(file_path) as hdul:
 
             # Header
             header = hdul[0].header
@@ -21,39 +54,57 @@ def extract_ccf(file, instrument):
             # Extract CCF
             ccf_val = hdul[1].data
             ccf_err = hdul[2].data
-            vstart  = header['HIERARCH ESO RV START']
-            vstep   = header['HIERARCH ESO RV STEP' ]
+            vstart  = header[f'HIERARCH {ORG} RV START']
+            vstep   = header[f'HIERARCH {ORG} RV STEP' ]
             vgrid   = vstart + vstep * np.arange(ccf_val.shape[1])
 
-    # HARPS-N
-    if instrument == 'harps-n':
+    # EXPRES
+    if instrument == 'expres':
 
         # Load FITS file
-        with fits.open(file) as hdul:
+        with fits.open(file_path) as hdul:
 
-            # Header
-            header = hdul[0].header
+            # Nr. of orders
+            Norder = hdul[2].data.shape[0]
 
-            # Extract CCF
-            ccf_val = hdul[1].data
-            ccf_err = hdul[2].data
-            vstart  = header['HIERARCH TNG RV START']
-            vstep   = header['HIERARCH TNG RV STEP' ]
-            vgrid   = vstart + vstep * np.arange(ccf_val.shape[1])
+            # Velocity grid
+            vgrid = np.array(hdul[1].data['V_grid'], dtype=float)
+            Ngrid = len(vgrid)
+
+            # NaN arrays
+            ccf_val = np.empty((Norder+1,Ngrid))*np.nan
+            ccf_err = np.empty((Norder+1,Ngrid))*np.nan
+
+            # Loop orders
+            for i in range(Norder):
+
+                # Extract order-by-order CCF
+                ccf_val[i] = hdul[2].data[i][1]
+                ccf_val[i] = hdul[2].data[i][2]
+
+            # Extract order-summed CCF
+            ccf_val[-1] = hdul[1].data['ccf']
+            ccf_err[-1] = hdul[1].data['e_ccf']
+
+    # KPF
+    if instrument == 'kpf':
+
+        # TODO
+        return None
 
     # NEID
     if instrument == 'neid':
 
         # Load FITS file
-        with fits.open(file) as hdul:
+        with fits.open(file_path) as hdul:
 
             # Nr. of orders
             Norder = hdul[1].data.shape[0]
 
             # Velocity grid
-            vstart = -20
-            vstop  =  20
-            vstep  =   1
+            vstart = -20.
+            vstop  =  20.
+            vstep  =   1.
             vgrid  = np.arange(vstart, vstop+vstep/2, vstep)
             Ngrid  = len(vgrid)
 
@@ -65,9 +116,9 @@ def extract_ccf(file, instrument):
             RV_table = vgrid
             mask = Mask('G2', 'ESPRESSO')
             berv = np.empty(Norder)
-            for j in range(Norder):
-                berv[j] = hdul[0].header[f'SSBRV{52+j:0>3}']
-            bervmax = 1
+            for i in range(Norder):
+                berv[i] = hdul[0].header[f'SSBRV{52+i:0>3}']
+            bervmax = 32.
             mask_width = vstep
 
             # Quality
@@ -81,33 +132,33 @@ def extract_ccf(file, instrument):
             ccf_err = np.empty((Norder+1,Ngrid))*np.nan
 
             # Loop orders
-            for j in range(Norder):
+            for i in range(Norder):
 
                 # Check that all wavelengths are valid
-                if not np.all(ll[j] > 0):
+                if not np.all(ll[i] > 0):
                     continue
 
                 # Vacuum-to-air transformation and BERV-correction of wavelengths
                 c = 299792.458
-                ll[j]  = pyasl.vactoair2(ll[j])
-                ll[j] *= (1. + berv[j]/c)
+                ll[i]  = pyasl.vactoair2(ll[i])
+                ll[i] *= (1. + berv[i]/c)
 
                 # Interpolate NaN pixels
-                idx_val = np.isfinite(flux[j]) & np.isfinite(error[j]) & np.isfinite(blaze[j])
+                idx_val = np.isfinite(flux[i]) & np.isfinite(error[i]) & np.isfinite(blaze[i])
                 idx_nan = ~idx_val
-                flux [j,idx_nan] = interp1d(ll[j,idx_val], flux [j,idx_val], kind='linear', assume_sorted=True, bounds_error=False)(ll[j,idx_nan])
-                error[j,idx_nan] = interp1d(ll[j,idx_val], error[j,idx_val], kind='linear', assume_sorted=True, bounds_error=False)(ll[j,idx_nan])
-                blaze[j,idx_nan] = interp1d(ll[j,idx_val], blaze[j,idx_val], kind='linear', assume_sorted=True, bounds_error=False)(ll[j,idx_nan])
+                flux [i,idx_nan] = interp1d(ll[i,idx_val], flux [i,idx_val], kind='linear', assume_sorted=True, bounds_error=False)(ll[i,idx_nan])
+                error[i,idx_nan] = interp1d(ll[i,idx_val], error[i,idx_val], kind='linear', assume_sorted=True, bounds_error=False)(ll[i,idx_nan])
+                blaze[i,idx_nan] = interp1d(ll[i,idx_val], blaze[i,idx_val], kind='linear', assume_sorted=True, bounds_error=False)(ll[i,idx_nan])
 
                 # Compute CCF
-                ccf_val[j], ccf_err[j], _ = espdr_compute_CCF_fast(ll[j], dll[j], flux[j], error[j], blaze[j], quality[j], RV_table, mask, berv[j], bervmax, mask_width)
+                ccf_val[i], ccf_err[i], _ = espdr_compute_CCF_fast(ll[i], dll[i], flux[i], error[i], blaze[i], quality[i], RV_table, mask, berv[i], bervmax, mask_width)
 
                 # Weight CCF
-                ccf_weight = hdul[12].header[f'CCFWT{52+j:0>3}']
+                ccf_weight = hdul[12].header[f'CCFWT{52+i:0>3}']
                 if ccf_weight is None:
                     ccf_weight = np.nan
-                ccf_val[j] *= ccf_weight
-                ccf_err[j] *= ccf_weight
+                ccf_val[i] *= ccf_weight
+                ccf_err[i] *= ccf_weight
 
             # Combine CCF
             ccf_val[-1] = np.nansum(ccf_val[:-1], axis=0)

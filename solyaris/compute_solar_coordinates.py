@@ -3,7 +3,25 @@ from   astropy.coordinates import AltAz, Angle, EarthLocation, get_body, solar_s
 from   astropy.time        import Time
 from   datetime            import datetime, timedelta
 
-def compute_solar_coordinates(obsname, date_obs, exp_time, photocen):
+def compute_solar_coordinates(obsname:str, date_obs:str, exp_time:float, photocen:float) -> tuple[float]:
+    """Compute solar coordinates.
+
+    Parameters
+    ----------
+    obsname : str
+        Observatory name from those available in astropy.coordinates.EarthLocation.get_site_names().
+    date_obs : str
+        Observation date in UTC for the start of the exposure.
+    exp_time : float
+        Exposure time in seconds.
+    photocen : float
+        Photometric center of exposure as a fraction of the total integration time.
+
+    Returns
+    -------
+    tuple[float]
+        RA, Dec and airmass of the Sun at the photometric center of the observation.
+    """
 
     # Get date at start, end and photocenter of observation
     date_start = datetime.strptime(date_obs, '%Y-%m-%dT%H:%M:%S.%f')

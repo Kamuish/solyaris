@@ -3,17 +3,32 @@ import numpy as np
 
 from .extract_ccf import extract_ccf
 
-def extract_order_by_order_rv(file, instrument, Norder):
+def extract_order_by_order_rv(file_path:str) -> tuple[np.array]:
+    """Extract order-by-order RV.
 
-    # NaN arrays
-    vrad_val = np.empty(Norder+1, dtype=float)*np.nan
-    vrad_err = np.empty(Norder+1, dtype=float)*np.nan
+    Parameters
+    ----------
+    file_path : str
+        Path to FITS file.
+
+    Returns
+    -------
+    tuple[np.array]
+        Order-by-order RV values and errors. The last index contains the order-summed RV value and error.
+    """
 
     # Extract order-by-order CCF
-    vgrid, ccf_val, ccf_err = extract_ccf(file, instrument)
+    vgrid, ccf_val, ccf_err = extract_ccf(file_path)
+
+    # Nr. of orders
+    Norder = ccf_val.shape[0]
+
+    # NaN arrays
+    vrad_val = np.empty(Norder, dtype=float)*np.nan
+    vrad_err = np.empty(Norder, dtype=float)*np.nan
 
     # Loop orders
-    for i in range(Norder+1):
+    for i in range(Norder):
 
         # Check that CCF is finite
         if not np.all(np.isfinite(ccf_val[i]) & np.isfinite(ccf_err[i])):

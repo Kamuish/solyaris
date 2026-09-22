@@ -5,7 +5,7 @@ with open('README.md') as file:
 
 setup(
     name='solyaris',
-    version='0.3.0',
+    version='0.4.0',
     author='Khaled Al Moulla',
     author_email='khaled.almoulla@gmail.com',
     description='Order-by-order radial-velocity extraction and differential-extinction correction of Sun-as-a-star observations.',
