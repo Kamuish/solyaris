@@ -89,23 +89,24 @@ class SOLYARIS:
             self.obscode    = 0
             self.obsname    = 'X'
 
-    def add_data(self, files:list[str]=None):
+    def add_data(self, paths:list[str]=None):
         """Add data.
 
         Parameters
         ----------
-        files : list[str], optional
+        paths : list[str], optional
             List of paths to FITS files. Must be CCF_A files (ESPRESSO, HARPS, HARPS-N, NIRPS) or L2 files (EXPRES, NEID). By default None.
 
         Returns
         -------
         None
-            Saves files in self.files and nr. of files in self.Nfile.
+            Saves paths in self.paths, files in self.files and nr. of files in self.Nfile.
         """
 
-        # Create 'files' and 'Nfile' properties
-        self.files = files
-        self.Nfile = len(files)
+        # Create 'paths', 'files' and 'Nfile' properties
+        self.paths = paths
+        self.files = [path.split('/')[-1] for path in self.paths]
+        self.Nfile = len(self.files)
 
         return None
 
@@ -130,7 +131,7 @@ class SOLYARIS:
         for i in iterable:
 
             # Extract header keywords
-            header_dict = extract_header_keywords(self.files[i], self.instrument, self.Norder)
+            header_dict = extract_header_keywords(self.paths[i], self.instrument, self.Norder)
 
             # Initiate DataFrame
             if i == 0:
@@ -152,7 +153,7 @@ class SOLYARIS:
         None
             Saves order-by-order RV values and errors as 'vrad_val_ORDER' and 'vrad_err_ORDER' columns in self.table,
             where ORDER is the order index starting from 1.
-            Saves the summed CCF RV values and errors as 'vrad_val_sum' and 'vrad_err_sum'.
+            Saves the summed CCF RV values and errors as 'vrad_val_tot' and 'vrad_err_tot'.
         """
 
         # Print action
@@ -171,7 +172,7 @@ class SOLYARIS:
         for i in iterable:
 
             # Extract order-by-order RV
-            vrad_val[i], vrad_err[i] = extract_order_by_order_rv(self.files[i])
+            vrad_val[i], vrad_err[i] = extract_order_by_order_rv(self.paths[i])
 
         # Loop orders
         for i in range(self.Norder):
@@ -181,8 +182,8 @@ class SOLYARIS:
             self.table[f'vrad_err_{i+1}'] = vrad_err[:,i]
 
         # Insert output columns
-        self.table['vrad_val_sum'] = vrad_val[:,self.Norder]
-        self.table['vrad_err_sum'] = vrad_err[:,self.Norder]
+        self.table['vrad_val_tot'] = vrad_val[:,self.Norder]
+        self.table['vrad_err_tot'] = vrad_err[:,self.Norder]
 
         return None
 
@@ -204,21 +205,21 @@ class SOLYARIS:
         iterable = tqdm(range(self.Nfile)) if self.verbose else range(self.Nfile)
 
         # Empty arrays
-        berv_val = np.empty(self.Nfile, dtype=float)
-        herv_val = np.empty(self.Nfile, dtype=float)
+        berv = np.empty(self.Nfile, dtype=float)
+        herv = np.empty(self.Nfile, dtype=float)
 
         # Loop files
         for i in iterable:
 
             # Compute BERV and HERV corrections
-            berv_val[i], herv_val[i] = compute_berv_and_herv_corrections(self.obsname, self.table.date_obs.values[i], self.table.exp_time.values[i], self.table.photocen.values[i])
+            berv[i], herv[i] = compute_berv_and_herv_corrections(self.obsname, self.table.date_obs.values[i], self.table.exp_time.values[i], self.table.photocen.values[i])
 
         # Rename header columns
-        self.table.rename(columns={'berv_val': 'berv_drs'}, inplace=True)
+        self.table.rename(columns={'berv': 'berv_drs'}, inplace=True)
 
         # Insert output columns
-        self.table.insert(self.table.columns.get_loc('berv_drs')+1, 'berv_val', berv_val)
-        self.table.insert(self.table.columns.get_loc('berv_drs')+2, 'herv_val', herv_val)
+        self.table.insert(self.table.columns.get_loc('berv_drs')+1, 'berv', berv)
+        self.table.insert(self.table.columns.get_loc('berv_drs')+2, 'herv', herv)
 
         return None
 
@@ -240,25 +241,25 @@ class SOLYARIS:
         iterable = tqdm(range(self.Nfile)) if self.verbose else range(self.Nfile)
 
         # Empty arrays
-        alph_val = np.empty(self.Nfile, dtype=float)
-        delt_val = np.empty(self.Nfile, dtype=float)
-        airm_val = np.empty(self.Nfile, dtype=float)
+        alpha   = np.empty(self.Nfile, dtype=float)
+        delta   = np.empty(self.Nfile, dtype=float)
+        airmass = np.empty(self.Nfile, dtype=float)
 
         # Loop files
         for i in iterable:
 
             # Compute solar coordinates
-            alph_val[i], delt_val[i], airm_val[i] = compute_solar_coordinates(self.obsname, self.table.date_obs.values[i], self.table.exp_time.values[i], self.table.photocen.values[i])
+            alpha[i], delta[i], airmass[i] = compute_solar_coordinates(self.obsname, self.table.date_obs.values[i], self.table.exp_time.values[i], self.table.photocen.values[i])
 
         # Rename header columns
-        self.table.rename(columns={'alph_val': 'alph_drs'}, inplace=True)
-        self.table.rename(columns={'delt_val': 'delt_drs'}, inplace=True)
-        self.table.rename(columns={'airm_val': 'airm_drs'}, inplace=True)
+        self.table.rename(columns={'alpha'  : 'alpha_drs'  }, inplace=True)
+        self.table.rename(columns={'delta'  : 'delta_drs'  }, inplace=True)
+        self.table.rename(columns={'airmass': 'airmass_drs'}, inplace=True)
 
         # Insert output columns
-        self.table.insert(self.table.columns.get_loc('alph_drs')+1, 'alph_val', alph_val)
-        self.table.insert(self.table.columns.get_loc('delt_drs')+1, 'delt_val', delt_val)
-        self.table.insert(self.table.columns.get_loc('airm_drs')+1, 'airm_val', airm_val)
+        self.table.insert(self.table.columns.get_loc('alpha_drs'  )+1, 'alpha'  , alpha  )
+        self.table.insert(self.table.columns.get_loc('delta_drs'  )+1, 'delta'  , delta  )
+        self.table.insert(self.table.columns.get_loc('airmass_drs')+1, 'airmass', airmass)
 
         return None
 
@@ -335,7 +336,7 @@ class SOLYARIS:
 
             # Extract and compute required variables
             time_jdb = self.table[ 'time_jdb'   ].to_numpy(copy=True)
-            airm_val = self.table[ 'airm_val'   ].to_numpy(copy=True)
+            airm_val = self.table[ 'airmass'    ].to_numpy(copy=True)
             snrx_val = self.table[f'snr_{order}'].to_numpy(copy=True)
             time_jdn = np.floor(time_jdb + 0.5).astype(int)
 
@@ -448,7 +449,7 @@ class SOLYARIS:
         hour_angle, corr_extinction, corr_vsini = compute_differential_extinction_and_vsini_corrections(self.obsname, self.obscode, time_jdb, extinction, ldc)
 
         # Insert output columns
-        self.table.insert(self.table.columns.get_loc('airm_val')+1, 'hour_angle', hour_angle)
+        self.table.insert(self.table.columns.get_loc('airmass' )+1, 'hour_angle', hour_angle)
         self.table.insert(self.table.columns.get_loc('fwhm_err')+1, 'corr_vsini', corr_vsini)
 
         # Loop orders
@@ -456,6 +457,27 @@ class SOLYARIS:
 
             # Insert output columns
             self.table.insert(self.table.columns.get_loc(f'vrad_err_{order}')+1, f'corr_extinction_{order}', corr_extinction[i])
+
+        # If mode with all orders, compute weighted average of differential extinction correction
+        if mode == 'all':
+
+            # Empty arrays
+            vrad_err        = np.empty((Norder, Nfile), dtype=float)
+            corr_extinction = np.empty((Norder, Nfile), dtype=float)
+
+            # Loop orders
+            for i in range(Norder):
+
+                # Extract RV error and differential extinction correction
+                vrad_err       [i] = self.table[f'vrad_err_{i+1}'       ].to_numpy(copy=True)
+                corr_extinction[i] = self.table[f'corr_extinction_{i+1}'].to_numpy(copy=True)
+
+            # Compute weighted average of differential extinction correction
+            idx = np.any(np.isfinite(vrad_err), axis=1)
+            corr_extinction_tot = np.average(corr_extinction[idx], weights=1/vrad_err[idx]**2, axis=0)
+
+            # Insert output columns
+            self.table.insert(self.table.columns.get_loc('vrad_err_tot')+1, 'corr_extinction_tot', corr_extinction_tot)
 
         return None
 

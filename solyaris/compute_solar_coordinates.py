@@ -38,16 +38,16 @@ def compute_solar_coordinates(obsname:str, date_obs:str, exp_time:float, photoce
     delta = sun_coord_string.split('s')[1].strip().replace('d',':').replace('m',':').replace('+', '')
 
     # Convert alpha and delta to decimal degrees
-    alph_val = Angle(alpha, unit=u.hour  ).to(u.degree).value
-    delt_val = Angle(delta, unit=u.degree)             .value
+    alpha = Angle(alpha, unit=u.hour  ).to(u.degree).value
+    delta = Angle(delta, unit=u.degree)             .value
     
     # Compute airmass
     time_start = Time(date_start)
     time_end = Time(date_end)
     sun_altaz_start = sun_coord.transform_to(AltAz(obstime=time_start, location=loc))
     sun_altaz_end = sun_coord.transform_to(AltAz(obstime=time_end, location=loc))
-    airm_start = sun_altaz_start.secz.value
-    airm_end = sun_altaz_end.secz.value
-    airm_val = airm_start*(1-photocen) + airm_end*photocen
+    airmass_start = sun_altaz_start.secz.value
+    airmass_end = sun_altaz_end.secz.value
+    airmass = airmass_start*(1-photocen) + airmass_end*photocen
 
-    return alph_val, delt_val, airm_val
+    return alpha, delta, airmass

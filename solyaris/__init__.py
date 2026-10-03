@@ -1,4 +1,4 @@
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __author__  = 'Khaled Al Moulla'
 
 from .solyaris import SOLYARIS

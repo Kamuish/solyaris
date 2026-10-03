@@ -5,12 +5,12 @@ import numpy             as     np
 from   PyAstronomy       import pyasl
 from   scipy.interpolate import interp1d
 
-def extract_ccf(file_path:str) -> tuple[np.array]:
+def extract_ccf(path:str) -> tuple[np.array]:
     """Extract Cross-Correlation Function (CCF).
 
     Parameters
     ----------
-    file_path : str
+    path : str
         Path to FITS file. Must be a CCF_A file (ESPRESSO, HARPS, HARPS-N, NIRPS) or an L2 file (EXPRES, KPF, NEID).
 
     Returns
@@ -20,7 +20,7 @@ def extract_ccf(file_path:str) -> tuple[np.array]:
     """
 
     # Instrument
-    file = file_path.split('/')[-1]
+    file = path.split('/')[-1]
     if file.startswith('r.ESPRE'):
         instrument = 'espresso'
     if file.startswith('r.HARPS'):
@@ -46,7 +46,7 @@ def extract_ccf(file_path:str) -> tuple[np.array]:
             ORG = 'TNG'
 
         # Load FITS file
-        with fits.open(file_path) as hdul:
+        with fits.open(path) as hdul:
 
             # Header
             header = hdul[0].header
@@ -62,7 +62,7 @@ def extract_ccf(file_path:str) -> tuple[np.array]:
     if instrument == 'expres':
 
         # Load FITS file
-        with fits.open(file_path) as hdul:
+        with fits.open(path) as hdul:
 
             # Nr. of orders
             Norder = hdul[2].data.shape[0]
@@ -96,7 +96,7 @@ def extract_ccf(file_path:str) -> tuple[np.array]:
     if instrument == 'neid':
 
         # Load FITS file
-        with fits.open(file_path) as hdul:
+        with fits.open(path) as hdul:
 
             # Nr. of orders
             Norder = hdul[1].data.shape[0]

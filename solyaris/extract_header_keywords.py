@@ -3,13 +3,13 @@ import numpy      as     np
 
 from typing import Literal
 
-def extract_header_keywords(file:str, instrument:Literal['espresso', 'expres', 'harps', 'harps-n', 'kpf', 'neid', 'nirps'], Norder:int) -> dict:
+def extract_header_keywords(path:str, instrument:Literal['espresso', 'expres', 'harps', 'harps-n', 'kpf', 'neid', 'nirps'], Norder:int) -> dict:
     """Extract header keywords.
 
     Parameters
     ----------
-    file : str
-        Filename. Must be a CCF_A file (ESPRESSO, HARPS, HARPS-N, NIRPS) or an L2 file (EXPRES, KPF, NEID).
+    path : str
+        Path to FITS file. Must be a CCF_A file (ESPRESSO, HARPS, HARPS-N, NIRPS) or an L2 file (EXPRES, KPF, NEID).
     instrument : Literal['espresso', 'expres', 'harps', 'harps-n', 'kpf', 'neid', 'nirps']
         Instrument name.
     Norder : int
@@ -22,7 +22,7 @@ def extract_header_keywords(file:str, instrument:Literal['espresso', 'expres', '
     """
 
     # Load FITS file
-    with fits.open(file) as hdul:
+    with fits.open(path) as hdul:
 
         # ESPRESSO
         if instrument == 'espresso':
@@ -38,10 +38,10 @@ def extract_header_keywords(file:str, instrument:Literal['espresso', 'expres', '
             header_dict['obj_type'] = header['HIERARCH ESO PRO REC1 RAW1 CATG'       ]
             header_dict['exp_time'] = header['EXPTIME'                               ]
             header_dict['photocen'] = header['HIERARCH ESO QC TMMEAN USED'           ]
-            header_dict['alph_val'] = header['HIERARCH ESO TEL5 TARG ALPHA'          ]
-            header_dict['delt_val'] = header['HIERARCH ESO TEL5 TARG DELTA'          ]
-            header_dict['airm_val'] = header['HIERARCH ESO TEL5 AIRM START'          ]*(1-header_dict['photocen']) + header['HIERARCH ESO TEL5 AIRM END']*header_dict['photocen']
-            header_dict['berv_val'] = header['HIERARCH ESO QC BERV'                  ]
+            header_dict['alpha'   ] = header['HIERARCH ESO TEL5 TARG ALPHA'          ]
+            header_dict['delta'   ] = header['HIERARCH ESO TEL5 TARG DELTA'          ]
+            header_dict['airmass' ] = header['HIERARCH ESO TEL5 AIRM START'          ]*(1-header_dict['photocen']) + header['HIERARCH ESO TEL5 AIRM END']*header_dict['photocen']
+            header_dict['berv'    ] = header['HIERARCH ESO QC BERV'                  ]
             header_dict['time_jdb'] = header['HIERARCH ESO QC BJD'                   ]
             header_dict['vrad_val'] = header['HIERARCH ESO QC CCF RV'                ]
             header_dict['vrad_err'] = header['HIERARCH ESO QC CCF RV ERROR'          ]
@@ -80,10 +80,10 @@ def extract_header_keywords(file:str, instrument:Literal['espresso', 'expres', '
             header_dict['obj_type'] = header['HIERARCH ESO PRO REC1 RAW2 CATG'       ]
             header_dict['exp_time'] = header['EXPTIME'                               ]
             header_dict['photocen'] = header['HIERARCH TNG EXP_METER_A EXP CENTROID' ]
-            header_dict['alph_val'] = header['HIERARCH TNG TEL TARG ALPHA'           ]
-            header_dict['delt_val'] = header['HIERARCH TNG TEL TARG DELTA'           ]
-            header_dict['airm_val'] = header['AIRMASS'                               ]
-            header_dict['berv_val'] = header['HIERARCH TNG QC BERV'                  ]
+            header_dict['alpha'   ] = header['HIERARCH TNG TEL TARG ALPHA'           ]
+            header_dict['delta'   ] = header['HIERARCH TNG TEL TARG DELTA'           ]
+            header_dict['airmass' ] = header['AIRMASS'                               ]
+            header_dict['berv'    ] = header['HIERARCH TNG QC BERV'                  ]
             header_dict['time_jdb'] = header['HIERARCH TNG QC BJD'                   ]
             header_dict['vrad_val'] = header['HIERARCH TNG QC CCF RV'                ]
             header_dict['vrad_err'] = header['HIERARCH TNG QC CCF RV ERROR'          ]
@@ -116,10 +116,10 @@ def extract_header_keywords(file:str, instrument:Literal['espresso', 'expres', '
             header_dict['obj_type'] = header['WAVECAL'                               ]
             header_dict['exp_time'] = header['EXPTIME'                               ]
             header_dict['photocen'] = 0.5
-            header_dict['alph_val'] = header['TCSRA'                                 ]
-            header_dict['delt_val'] = header['TCSDEC'                                ]
-            header_dict['airm_val'] = header['AIRMASS'                               ]
-            header_dict['berv_val'] = header['SSBRV100'                              ]
+            header_dict['alpha'   ] = header['TCSRA'                                 ]
+            header_dict['delta'   ] = header['TCSDEC'                                ]
+            header_dict['airmass' ] = header['AIRMASS'                               ]
+            header_dict['berv'    ] = header['SSBRV100'                              ]
             header                  = hdul[12].header
             header_dict['time_jdb'] = header['CCFJDMOD'                              ]
             header_dict['vrad_val'] = header['CCFRVMOD'                              ]

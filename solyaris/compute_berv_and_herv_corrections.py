@@ -33,11 +33,11 @@ def compute_berv_and_herv_corrections(obsname:str, date_obs:str, exp_time:float,
     jd_utc_cen = Time(date_obs, format='isot').jd + exp_time * photocen * sec_to_day
 
     # Compute BERV and HERV
-    berv_val = barycorrpy.get_BC_vel(JDUTC=jd_utc_cen, obsname=obsname, SolSystemTarget='Sun'                 )[0][0]
-    herv_val = barycorrpy.get_BC_vel(JDUTC=jd_utc_cen, obsname=obsname, SolSystemTarget='Sun', predictive=True)[0][0]*(-1) - berv_val + gr_sun
+    berv = barycorrpy.get_BC_vel(JDUTC=jd_utc_cen, obsname=obsname, SolSystemTarget='Sun'                 )[0][0]
+    herv = barycorrpy.get_BC_vel(JDUTC=jd_utc_cen, obsname=obsname, SolSystemTarget='Sun', predictive=True)[0][0]*(-1) - berv + gr_sun
 
     # Convert from m/s to km/s
-    berv_val *= mps_to_kmps
-    herv_val *= mps_to_kmps
+    berv *= mps_to_kmps
+    herv *= mps_to_kmps
 
-    return berv_val, herv_val
+    return berv, herv
